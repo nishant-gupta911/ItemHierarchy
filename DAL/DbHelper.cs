@@ -32,7 +32,8 @@ namespace ItemProcessingSystemCore.DAL
                     cmd.Parameters.AddWithValue("@ChildId", childItemId);
                     cmd.CommandTimeout = 30;
 
-                    int count = (int)cmd.ExecuteScalar() ?? 0;
+                    object result = cmd.ExecuteScalar();
+                    int count = result != null ? (int)result : 0;
                     return count > 0;
                 }
             }

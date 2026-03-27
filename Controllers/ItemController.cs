@@ -32,7 +32,7 @@ namespace ItemProcessingSystemCore.Controllers
                     items.Add(new Item
                     {
                         ItemId = (int)reader["ItemId"],
-                        Name = reader["Name"]?.ToString() ?? "",
+                        Name = reader["Name"] != null ? reader["Name"].ToString() : null,
                         Weight = (double)reader["Weight"]
                     });
                 }
@@ -83,7 +83,7 @@ namespace ItemProcessingSystemCore.Controllers
 
         public IActionResult Edit(int id)
         {
-            Item item = null;
+            Item? item = null;
 
             try
             {
@@ -102,7 +102,7 @@ namespace ItemProcessingSystemCore.Controllers
                         item = new Item
                         {
                             ItemId = (int)reader["ItemId"],
-                            Name = reader["Name"]?.ToString() ?? "",
+                            Name = reader["Name"] != null ? reader["Name"].ToString() : null,
                             Weight = (double)reader["Weight"],
                             CreatedAt = (DateTime)reader["CreatedAt"]
                         };
@@ -223,7 +223,7 @@ namespace ItemProcessingSystemCore.Controllers
                         items.Add(new Item
                         {
                             ItemId = (int)reader["ItemId"],
-                            Name = reader["Name"]?.ToString() ?? ""
+                            Name = reader["Name"] != null ? reader["Name"].ToString() : null
                         });
                     }
                 }
@@ -329,7 +329,7 @@ namespace ItemProcessingSystemCore.Controllers
                         items.Add(new Item
                         {
                             ItemId = (int)reader1["ItemId"],
-                            Name = reader1["Name"]?.ToString() ?? ""
+                            Name = reader1["Name"] != null ? reader1["Name"].ToString() : null
                         });
                     }
                     reader1.Close();
