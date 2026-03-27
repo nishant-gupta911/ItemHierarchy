@@ -3,21 +3,39 @@ using ItemProcessingSystemCore.Models;
 
 namespace ItemProcessingSystemCore.DAL
 {
+    /// <summary>
+    /// Database access layer for SQL Server operations
+    /// Handles connection management and common database operations
+    /// </summary>
     public class DbHelper
     {
         private readonly string _connectionString;
 
+        /// <summary>
+        /// Initializes the DbHelper with connection string from configuration
+        /// </summary>
+        /// <param name="configuration">Application configuration containing connection strings</param>
         public DbHelper(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection") 
                                 ?? throw new Exception("Connection string not found");
         }
 
+        /// <summary>
+        /// Gets a new SQL connection instance
+        /// </summary>
+        /// <returns>New SqlConnection to the configured database</returns>
         public SqlConnection GetConnection()
         {
             return new SqlConnection(_connectionString);
         }
 
+        /// <summary>
+        /// Checks if a relationship exists between parent and child items
+        /// </summary>
+        /// <param name="parentItemId">The ID of the parent item</param>
+        /// <param name="childItemId">The ID of the child item</param>
+        /// <returns>True if relationship exists, false otherwise</returns>
         public bool RelationExists(int parentItemId, int childItemId)
         {
             try
@@ -47,6 +65,12 @@ namespace ItemProcessingSystemCore.DAL
             }
         }
 
+        /// <summary>
+        /// Creates a new relationship between parent and child items
+        /// </summary>
+        /// <param name="parentItemId">The ID of the parent item</param>
+        /// <param name="childItemId">The ID of the child item</param>
+        /// <returns>True if relationship was created successfully, false otherwise</returns>
         public bool InsertRelation(int parentItemId, int childItemId)
         {
             try
