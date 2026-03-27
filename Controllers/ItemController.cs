@@ -404,7 +404,7 @@ namespace ItemProcessingSystemCore.Controllers
                     output += "<p><strong>Items with no relations:</strong></p>";
                     foreach (var item in orphaned)
                     {
-                        output += $"<p>• {item.Name} (Weight: {item.Weight})</p>";
+                        output += $"<p>• {item.Name ?? "Unnamed"} (Weight: {item.Weight})</p>";
                     }
                     output += "</div>";
                 }
@@ -418,10 +418,13 @@ namespace ItemProcessingSystemCore.Controllers
             }
         }
 
-        private string BuildItemTree(Item item, Dictionary<int, List<ItemRelation>> childrenMap, List<Item> allItems)
+        private string BuildItemTree(Item? item, Dictionary<int, List<ItemRelation>> childrenMap, List<Item> allItems)
         {
+            if (item == null)
+                return "";
+                
             string html = $"<div style=\"margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;\">";
-            html += $"<strong>{item.Name}</strong> (Weight: {item.Weight})";
+            html += $"<strong>{item.Name ?? "Unnamed"}</strong> (Weight: {item.Weight})";
 
             if (childrenMap.ContainsKey(item.ItemId))
             {
