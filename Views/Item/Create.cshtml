@@ -1,0 +1,37 @@
+@model ItemProcessingSystemCore.Models.Item
+
+<h2>Add Item</h2>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div style="color: red; margin-bottom: 15px; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;">
+        <strong>Please fix the following errors:</strong>
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(x => x.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+
+<form method="post" style="max-width: 500px;">
+    @Html.AntiForgeryToken()
+
+    <div style="margin-bottom: 15px;">
+        <label for="Name" style="display: block; margin-bottom: 5px; font-weight: bold;">Item Name:</label>
+        <input type="text" id="Name" name="Name" value="@Model?.Name" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Enter item name..." />
+        <small style="color: #666;">Maximum 100 characters</small>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="Weight" style="display: block; margin-bottom: 5px; font-weight: bold;">Weight:</label>
+        <input type="number" id="Weight" name="Weight" value="@Model?.Weight" step="0.1" min="0.1" max="10000" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="0.1 - 10000" />
+        <small style="color: #666;">Between 0.1 and 10000</small>
+    </div>
+
+    <div>
+        <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Create Item</button>
+        <a href="/Item" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; display: inline-block; margin-left: 10px;">Cancel</a>
+    </div>
+</form>
