@@ -286,33 +286,26 @@ namespace ItemProcessingSystemCore.Controllers
 
         private bool WouldCreateCircle(int parentId, int childId, List<ItemRelation> relations)
         {
+            // simple check - if same item selected as parent and child
             if (parentId == childId)
                 return true;
 
-            Queue<int> queue = new Queue<int>();
-            HashSet<int> visited = new HashSet<int>();
-            queue.Enqueue(parentId);
-            visited.Add(parentId);
+            // recursively check if child is ancestor of parent
+            return CheckCircularDependency(parentId, childId, relations);
+        }
 
-            while (queue.Count > 0)
+        private bool CheckCircularDependency(int currentId, int targetId, List<ItemRelation> relations)
+        {
+            var parents = relations.Where(r => r.ChildItemId == currentId).Select(r => r.ParentItemId).ToList();
+            
+            foreach (var parentId in parents)
             {
-                int currentId = queue.Dequeue();
-                var parentsOfCurrent = relations
-                    .Where(r => r.ChildItemId == currentId)
-                    .Select(r => r.ParentItemId)
-                    .ToList();
+                if (parentId == targetId)
+                    return true;
 
-                foreach (int parentOfCurrent in parentsOfCurrent)
-                {
-                    if (parentOfCurrent == childId)
-                        return true;
-
-                    if (!visited.Contains(parentOfCurrent))
-                    {
-                        visited.Add(parentOfCurrent);
-                        queue.Enqueue(parentOfCurrent);
-                    }
-                }
+                // recursive check
+                if (CheckCircularDependency(parentId, targetId, relations))
+                    return true;
             }
 
             return false;
@@ -370,95 +363,82 @@ namespace ItemProcessingSystemCore.Controllers
             try
             {
                 if (items == null || items.Count == 0)
-                {
-                    return "<p style=\"color: #666; font-style: italic; padding: 10px; background-color: #f8f9fa; border-radius: 4px;\">No items in the system yet. <a href=\"/Item/Create\">Create one now</a>.</p>";
-                }
+                    return "<p>No items yet. <a href=\"/Item/Create\">Create one</a>.</p>";
 
                 if (relations == null || relations.Count == 0)
                 {
-                    var noRelationsHtml = "<p style=\"color: #ff9800; padding: 10px; background-color: #fff3cd; border-radius: 4px;\"><strong>No item relations defined.</strong> All items are displayed below:</p>";
-                    noRelationsHtml += "<div style=\"padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 4px solid #ffc107;\">";
+                    string html = "<p>No relations defined. Items:</p><ul>";
                     foreach (var item in items)
                     {
-                        noRelationsHtml += $"<p style=\"margin: 5px 0;\">• <strong>{SecurityEncode(item.Name)}</strong> (Weight: {item.Weight})</p>";
-                    }
-                    noRelationsHtml += "</div>";
-                    return noRelationsHtml;
-                }
-
-                var childItemIds = relations.Select(r => r.ChildItemId).ToHashSet();
-                var childrenByParent = new Dictionary<int, List<ItemRelation>>();
-                foreach (var rel in relations)
-                {
-                    if (!childrenByParent.ContainsKey(rel.ParentItemId))
-                        childrenByParent[rel.ParentItemId] = new List<ItemRelation>();
-                    childrenByParent[rel.ParentItemId].Add(rel);
-                }
-
-                Func<int, string> renderTree = null;
-                renderTree = (parentId) =>
-                {
-                    if (!childrenByParent.ContainsKey(parentId))
-                        return "";
-
-                    var children = childrenByParent[parentId];
-                    if (children.Count == 0)
-                        return "";
-
-                    string html = "<ul style=\"list-style: none; padding-left: 20px; margin: 5px 0;\">";
-                    foreach (var child in children)
-                    {
-                        var childItem = items?.FirstOrDefault(i => i.ItemId == child.ChildItemId);
-                        if (childItem == null)
-                            continue;
-
-                        html += $"<li style=\"margin-bottom: 5px;\"><strong>{SecurityEncode(childItem.Name)}</strong> (Weight: {childItem.Weight})<br />";
-                        html += renderTree(child.ChildItemId);
-                        html += "</li>";
+                        html += $"<li>{item.Name} (Weight: {item.Weight})</li>";
                     }
                     html += "</ul>";
                     return html;
-                };
-
-                var output = "<div style=\"padding: 15px; background-color: #f8f9fa; border-radius: 4px;\">";
-                output += "<h3>Hierarchy Structure</h3>";
-                foreach (var item in items.Where(i => !childItemIds.Contains(i.ItemId)))
-                {
-                    output += "<div style=\"margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background-color: white;\">";
-                    output += $"<p style=\"margin: 0; margin-bottom: 8px;\"><strong style=\"font-size: 1.1em; color: #007bff;\">📦 {SecurityEncode(item.Name)}</strong> (Weight: {item.Weight})</p>";
-                    output += renderTree(item.ItemId);
-                    output += "</div>";
                 }
 
-                var orphanedItems = items.Where(i => !childItemIds.Contains(i.ItemId) && !childrenByParent.ContainsKey(i.ItemId)).ToList();
-                if (orphanedItems.Count > 0)
+                // build a mapping of parent -> children
+                Dictionary<int, List<ItemRelation>> childrenMap = new Dictionary<int, List<ItemRelation>>();
+                foreach (var rel in relations)
                 {
-                    output += "<hr style=\"margin: 20px 0; border: none; border-top: 1px solid #ddd;\" />";
-                    output += "<div style=\"padding: 10px; background-color: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107;\">";
-                    output += "<p><em style=\"color: #856404;\"><strong>Items with no relations:</strong></em></p>";
-                    foreach (var item in orphanedItems)
+                    if (!childrenMap.ContainsKey(rel.ParentItemId))
+                        childrenMap[rel.ParentItemId] = new List<ItemRelation>();
+                    childrenMap[rel.ParentItemId].Add(rel);
+                }
+
+                // find root items (items that are not children of any other)
+                HashSet<int> childIds = new HashSet<int>(relations.Select(r => r.ChildItemId));
+                var roots = items.Where(i => !childIds.Contains(i.ItemId)).ToList();
+
+                // build HTML recursively
+                string output = "<div style=\"padding: 15px;\">";
+                foreach (var root in roots)
+                {
+                    output += BuildItemTree(root, childrenMap, items);
+                }
+
+                // add orphaned items
+                var orphaned = items.Where(i => !childIds.Contains(i.ItemId) && !childrenMap.ContainsKey(i.ItemId)).ToList();
+                if (orphaned.Count > 0)
+                {
+                    output += "<div style=\"margin-top: 20px; padding: 10px; background: #ffffcc; border: 1px solid #ccc;\">";
+                    output += "<p><strong>Items with no relations:</strong></p>";
+                    foreach (var item in orphaned)
                     {
-                        output += $"<p style=\"margin: 5px 0; color: #856404;\">• {SecurityEncode(item.Name)} (Weight: {item.Weight})</p>";
+                        output += $"<p>• {item.Name} (Weight: {item.Weight})</p>";
                     }
                     output += "</div>";
                 }
-
                 output += "</div>";
                 return output;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in BuildTreeHtml: {ex.Message}");
-                return "<p style=\"color: red;\">Error rendering tree. Please try again.</p>";
+                Console.WriteLine($"Error building tree: {ex.Message}");
+                return "<p style=\"color: red;\">Error rendering tree</p>";
             }
         }
 
-        private string SecurityEncode(string input)
+        private string BuildItemTree(Item item, Dictionary<int, List<ItemRelation>> childrenMap, List<Item> allItems)
         {
-            if (string.IsNullOrEmpty(input))
-                return "";
+            string html = $"<div style=\"margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;\">";
+            html += $"<strong>{item.Name}</strong> (Weight: {item.Weight})";
 
-            return System.Net.WebUtility.HtmlEncode(input);
+            if (childrenMap.ContainsKey(item.ItemId))
+            {
+                html += "<ul>";
+                foreach (var relation in childrenMap[item.ItemId])
+                {
+                    var child = allItems.FirstOrDefault(i => i.ItemId == relation.ChildItemId);
+                    if (child != null)
+                    {
+                        html += $"<li>{BuildItemTree(child, childrenMap, allItems)}</li>";
+                    }
+                }
+                html += "</ul>";
+            }
+            html += "</div>";
+            return html;
         }
+
     }
 }

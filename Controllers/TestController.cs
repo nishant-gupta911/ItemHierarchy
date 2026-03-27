@@ -4,10 +4,6 @@ using ItemProcessingSystemCore.DAL;
 
 namespace ItemProcessingSystemCore.Controllers
 {
-    /// <summary>
-    /// Test controller for development and debugging
-    /// Provides endpoints to verify database connectivity
-    /// </summary>
     public class TestController : Controller
     {
         private readonly DbHelper _db;
@@ -17,10 +13,7 @@ namespace ItemProcessingSystemCore.Controllers
             _db = db;
         }
 
-        /// <summary>
-        /// Tests database connection
-        /// </summary>
-        /// <returns>Success message if connected, exception if failed</returns>
+        // test database connection
         public IActionResult Index()
         {
             try
