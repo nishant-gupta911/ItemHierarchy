@@ -29,10 +29,16 @@ namespace ItemProcessingSystemCore.DAL
                     SqlCommand cmd = new SqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@ParentId", parentItemId);
                     cmd.Parameters.AddWithValue("@ChildId", childItemId);
+                    cmd.CommandTimeout = 30;
 
-                    int count = (int)cmd.ExecuteScalar();
+                    int count = (int)cmd.ExecuteScalar() ?? 0;
                     return count > 0;
                 }
+            }
+            catch (SqlException sqlEx)
+            {
+                Console.WriteLine($"Database error checking relation: {sqlEx.Message}");
+                throw;
             }
             catch (Exception ex)
             {
